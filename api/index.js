@@ -24,15 +24,24 @@ db = client.db(process.env.MONGO_DB || 'trackingdb');
 }
 
 app.post('/create-link', async (req, res) => {
+  console.log('Received /create-link request with body:', req.body);
   const { url } = req.body;
   if (!url) {
+    console.error('URL is missing in request body');
     return res.status(400).json({ error: 'URL is required' });
   }
-  await connectDB();
-  const id = uuidv4();
-  await linksCollection.insertOne({ _id: id, url });
-  const baseUrl = req.headers['x-forwarded-proto'] + '://' + req.headers['x-forwarded-host'];
-  res.json({ trackingUrl: `${baseUrl}/track/${id}` });
+  try {
+    await connectDB();
+    const id = uuidv4();
+    await linksCollection.insertOne({ _id: id, url });
+    const baseUrl = req.headers['x-forwarded-proto'] + '://' + req.headers['x-forwarded-host'];
+    const trackingUrl = `${baseUrl}/track/${id}`;
+    console.log('Generated tracking URL:', trackingUrl);
+    res.json({ trackingUrl });
+  } catch (error) {
+    console.error('Error in /create-link:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.get('/track/:id', async (req, res) => {
