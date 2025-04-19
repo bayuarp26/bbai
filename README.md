@@ -62,32 +62,42 @@ You can deploy this project on Vercel as a serverless application.
 
 ### Steps to deploy
 
-1. Install the Vercel CLI if you haven't already:
+1. Set up a MongoDB Atlas cluster (free tier available) and create a database.
+
+2. Create a `.env` file in the root of the project with the following content:
+
+```
+MONGODB_URI=your_mongodb_connection_string
+MONGODB_DB=your_database_name
+```
+
+3. Install the Vercel CLI if you haven't already:
 
 ```bash
 npm install -g vercel
 ```
 
-2. Login to Vercel:
+4. Login to Vercel:
 
 ```bash
 vercel login
 ```
 
-3. Deploy the project:
+5. Deploy the project:
 
 ```bash
 vercel
 ```
 
-4. Follow the prompts to complete the deployment.
+6. Set the environment variables in the Vercel dashboard for your project (`MONGODB_URI` and `MONGODB_DB`).
 
 The API routes are handled by serverless functions in the `api` directory, and static files are served from the `public` directory.
 
 ### Notes
 
-- The in-memory storage means tracking data will not persist across serverless function invocations.
-- For persistent storage, integrate a database or external storage service.
+- This project now uses MongoDB Atlas for persistent storage, which is suitable for serverless environments like Vercel.
+- Ensure your MongoDB connection string and database name are correctly set in environment variables.
+- For local development, create a `.env` file and use a package like `dotenv` to load environment variables.
 
 ## License
 
