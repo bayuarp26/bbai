@@ -25,19 +25,27 @@ git clone https://github.com/bayuarp26/bbai.git
 cd bbai
 ```
 
-2. Install dependencies:
+2. Copy the example environment file and update with your credentials:
 
 ```bash
-npm install express uuid
+cp .env.example .env
 ```
 
-3. Start the server:
+Edit the `.env` file and replace the placeholders with your actual MongoDB username, password, and database name.
+
+3. Install dependencies:
+
+```bash
+npm install
+```
+
+4. Start the server:
 
 ```bash
 node server.js
 ```
 
-4. Open your browser and navigate to:
+5. Open your browser and navigate to:
 
 ```
 http://localhost:3000
@@ -90,6 +98,17 @@ vercel
 ```
 
 6. Set the environment variables in the Vercel dashboard for your project (`MONGODB_URI` and `MONGODB_DB`).
+
+### How to set environment variables in Vercel dashboard
+
+- Go to your project dashboard on https://vercel.com
+- Click on "Settings"
+- Click on "Environment Variables"
+- Add the variables:
+  - Key: `MONGODB_URI`, Value: your MongoDB connection string
+  - Key: `MONGODB_DB`, Value: your database name
+- Save the changes
+- Redeploy your project if necessary
 
 The API routes are handled by serverless functions in the `api` directory, and static files are served from the `public` directory.
 

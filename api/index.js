@@ -6,7 +6,8 @@ const app = express();
 
 app.use(express.json());
 
-const uri = process.env.MONGODB_URI;
+require('dotenv').config();
+const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 let db;
@@ -16,7 +17,7 @@ let dataCollection;
 async function connectDB() {
   if (!db) {
     await client.connect();
-    db = client.db(process.env.MONGODB_DB || 'trackingdb');
+db = client.db(process.env.MONGO_DB || 'trackingdb');
     linksCollection = db.collection('trackingLinks');
     dataCollection = db.collection('trackingData');
   }
