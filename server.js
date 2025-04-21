@@ -5,9 +5,22 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const port = 3000;
 
+// Di bagian atas file
+const BASE_URL = process.env.BASE_URL || `http://0.0.0.0:${port}`;
+
 // In-memory store for tracking data and links
 const trackingLinks = {};
 const trackingData = {};
+
+// URL validation function
+function isValidUrl(string) {
+  try {
+    const url = new URL(string);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch (_) {
+    return false;  
+  }
+}
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -17,6 +30,9 @@ app.post('/create-link', (req, res) => {
   const { url } = req.body;
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
+  }
+  if (!isValidUrl(url)) {
+    return res.status(400).json({ error: 'Invalid URL format' });
   }
   const id = uuidv4();
   trackingLinks[id] = url;
@@ -60,6 +76,6 @@ app.get('/redirect/:id', (req, res) => {
   res.redirect(url);
 });
 
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server running at http://0.0.0.0:${port}`);
 });
